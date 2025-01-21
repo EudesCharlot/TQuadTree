@@ -5,7 +5,6 @@
 //Vous n'avez pas le droit de modifier cette partie du code jusqu'à la ligne notée par le commentaire //Vous pouvez modifier le code ci-dessous
 #include <concepts>
 #include <stdexcept>
-
 /**
  * @brief Concept définissant les exigences pour les données pouvant être stockées dans un TQuadTree.
  *
@@ -60,6 +59,11 @@ class TQuadTree
 public:
   using container = std::vector<T>;
 
+private:
+    SLimits m_limits;
+    container m_data;
+
+    std::vector<std::unique_ptr<TQuadTree>> m_children;
   /**
     * @brief Itérateur pour parcourir les éléments du QuadTree.
     */
@@ -143,10 +147,8 @@ public:
    *
    * @param limits Les limites géométriques du QuadTree.
    */
-  TQuadTree(const SLimits& limits = { 0.0f,0.0f,1.0f,1.0f })
-  {
-    //Evidemment, il va falloir compléter ce constructeur pour qu'il initialise correctement votre TQuadTree
-  }
+   TQuadTree(const SLimits& limits) : m_limits(limits) {}
+
 
 
   /**
@@ -154,8 +156,7 @@ public:
    */
   SLimits limits() const
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne les limites géométriques de ce QuadTree
-    return {};
+      return m_limits;;
   }
 
   /**
@@ -167,9 +168,15 @@ public:
    */
   bool empty() const
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne true uniquement si le QuadTree est vide
-    return true;
+      if (!m_data.empty())
+          return false;
+      for (const auto& child : m_children) {
+          if (child && !child->empty()
+              return false;
+      }
+  return true;
   }
+
 
   /**
    * @brief Retourne la profondeur maximale du QuadTree.
@@ -178,8 +185,13 @@ public:
    */
   size_t depth() const
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne la profondeur maximale du QuadTree
-    return 0;
+    size_t maxDepth = 0;
+
+    for (const auto& child : m_children) {
+        if (child)
+            maxDepth = std::max(maxDepth, child->depth());
+    }
+    return 1 + maxDepth;
   }
 
   /**
@@ -191,8 +203,13 @@ public:
    */
   size_t size() const
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne le nombre d'éléments stockés dans le QuadTree
-    return 0;
+      size_t = totalSize = m_data.size();
+
+      for (const auto& child : m_child)
+          if (child)
+              totalSize += child->size();
+
+      return totalSize;
   }
 
   /**
@@ -207,7 +224,7 @@ public:
    */
   void insert(const T& t)
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
+    
   }
 
   /**
