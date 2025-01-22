@@ -249,72 +249,51 @@ public:
    *
    * @param t L'élément à insérer dans le QuadTree.
    */
-  void subdivide()
+  void insert(const T& t)
+  {
+      if (BiggerThanLimits(t, m_limits)) {
+          throw std::domain_error("L objet a inserer ne rentre pas dans la taille du TQuadTree");
+      }
+      if (BiggerThanHalfLimits(t, m_limits)) {
+          m_data.push_back(t);
+      }
+      else {
+          subdivide(t);
+      }
+      //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
+  }
+  bool BiggerThanLimits(const T& t, SLimits limits) {
+      if (t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2) {
+          return true;
+      }
+      return false;
+
+  }
+  bool BiggerThanHalfLimits(const T& t, SLimits limits) {
+      if (t.x2() - t.x1() > (limits.x2 - limits.x1) / 2 || t.y2() - t.y1() > (limits.y2 - limits.y1) / 2) {
+          return true;
+      }
+      return false;
+  }
+
+  //La fonction subdivide est là pour permettre dans le cas où un objet est plus petit que la moitié des limites du parent.
+  // Elle créé les TQuadTree enfants de façon récursive (appel de insert) jusqu'à que l'objet t soit contenu dans les limites d'un children et donc ajouté au m_data du children
+  void subdivide(const T& t)
   {
       float midX = (m_limits.x1 + m_limits.x2) / 2.0f;
       float midY = (m_limits.y1 + m_limits.y2) / 2.0f;
 
-      m_children[0] = std::make_unique<TQuadTree>(SLimits{ m_limits.x1, m_limits.y1, midX, midY });
-      m_children[1] = std::make_unique<TQuadTree>(SLimits{ midX, m_limits.y1, m_limits.x2, midY });
-      m_children[2] = std::make_unique<TQuadTree>(SLimits{ m_limits.x1, midY, midX, m_limits.y2 });
-      m_children[3] = std::make_unique<TQuadTree>(SLimits{ midX, midY, m_limits.x2, m_limits.y2 });
-  }
-
-  void redistribute()
-  {
-      auto it = m_data.begin();
-      while (it != m_data.end())
-      {
-          bool inserted = false;
-          for (auto& child : m_children)
-          {
-              SLimits childLimits = child->limits();
-              if (it->x1() >= childLimits.x1 && it->x2() <= childLimits.x2 &&
-                  it->y1() >= childLimits.y1 && it->y2() <= childLimits.y2)
-              {
-                  child->insert(*it);
-                  it = m_data.erase(it);
-                  inserted = true;
-                  break;
-              }
-          }
-
-          if (!inserted)
-          {
-              ++it;
-          }
+      if (!m_children[0]) {
+          m_children[0] = std::make_unique<TQuadTree>(SLimits{ m_limits.x1, m_limits.y1, midX, midY });
+          m_children[1] = std::make_unique<TQuadTree>(SLimits{ midX, m_limits.y1, m_limits.x2, midY });
+          m_children[2] = std::make_unique<TQuadTree>(SLimits{ m_limits.x1, midY, midX, m_limits.y2 });
+          m_children[3] = std::make_unique<TQuadTree>(SLimits{ midX, midY, m_limits.x2, m_limits.y2 });
       }
-  }
-
-  void insert(const T& t)
-  {
-      if (t.x1() < m_limits.x1 || t.x2() > m_limits.x2 ||
-          t.y1() < m_limits.y1 || t.y2() > m_limits.y2)
-      {
-          throw std::domain_error("Out Of Bounds");
-      }
-
-      for (auto& child : m_children)
-      {
-          if (child)
-          {
-              SLimits childLimits = child->limits();
-              if (t.x1() >= childLimits.x1 && t.x2() <= childLimits.x2 &&
-                  t.y1() >= childLimits.y1 && t.y2() <= childLimits.y2)
-              {
-                  child->insert(t);
-                  return;
-              }
+      for (int i = 0; i < 4; ++i) {
+          if (!BiggerThanLimits(t, m_children[i]->m_limits)) {
+              m_children[i]->insert(t);
+              return;
           }
-      }
-
-      m_data.push_back(t);
-
-      const size_t maxElements = 4;
-      if (m_data.size() > maxElements && !m_children[0])
-      {
-          subdivide();
-          redistribute();
       }
   }
 
@@ -334,6 +313,45 @@ public:
 
   void remove(const T& t)
   {
+      if (t.x2() < m_limits.x1 || t.x1() > m_limits.x2 || t.y2() < m_limits.y1 || t.y1() > m_limits.y2)
+      {
+          throw std::domain_error("L objet a supprimer ne rentre pas dans la taille du TQuadTree");
+      }
+
+      if (m_children[0])
+      {
+          for (auto& child : m_children)
+          {
+              if (child)
+              {
+                  child->remove(t);
+              }
+          }
+      }
+
+      auto it = std::find(m_data.begin(), m_data.end(), t);
+      if (it != m_data.end())
+      {
+          m_data.erase(it);
+      }
+
+      bool allChildrenEmpty = true;
+      for (const auto& child : m_children)
+      {
+          if (child && !child->empty())
+          {
+              allChildrenEmpty = false;
+              break;
+          }
+      }
+
+      if (allChildrenEmpty)
+      {
+          for (auto& child : m_children)
+          {
+              child.reset();
+          }
+      }
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retire l'élément du QuadTree
   }
 
@@ -346,21 +364,16 @@ public:
    *
    * @return Une liste de tous les éléments stockés dans le QuadTree.
    */
-  container getAll() const
-  {
-      /*container AllElements;
-      //AllElements.push_back(m_data);
-      for (const auto& data : m_data) {
-          AllElements.push_back(data);
+  container getAll() const {
+      container allElement = m_data;
+
+      for (const auto& child : m_children) {
+          if (child) {
+              container childElements = child->getAll();
+              allElement.insert(allElement.end(), childElements.begin(), childElements.end());
+          }
       }
-      
-      for (auto child : m_children) {
-          child->getAll();
-      }
-      */
-      //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments stockés dans le QuadTree
-      
-          return {};
+      return allElement;
   }
 
   /**
@@ -375,7 +388,26 @@ public:
   container findInscribed(const SLimits& limits) const
   {
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments inclus dans la zone spécifiée
-    return {};
+      container result;
+
+      if (m_limits.x1 >= limits.x1 && m_limits.x2 <= limits.x2 && m_limits.y1 >= limits.y1 && m_limits.y2 <= limits.y2) {
+          result.insert(result.end(), m_data.begin(), m_data.end());
+      }
+      else {
+          for (const auto& element : m_data) {
+              if (element.x1() >= limits.x1 && element.x2() <= limits.x2 && element.y1() >= limits.y1 && element.y2() <= limits.y2) {
+                  result.push_back(element);
+              }
+          }
+      }
+
+      for (const auto& child : m_children) {
+          if (child) {
+              container childResult = child->findInscribed(limits);
+              result.insert(result.end(), childResult.begin(), childResult.end());
+          }
+      }
+      return result;
   }
 
   /**
@@ -390,7 +422,25 @@ public:
   container findColliding(const SLimits& limits) const
   {
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments en collision avec la zone spécifiée
-    return {};
+      container collidingElements;
+
+      if (limits.x2 < m_limits.x1 || limits.x1 > m_limits.x2 || limits.y2 < m_limits.y1 || limits.y1 > m_limits.y2) {
+          return collidingElements;
+      }
+
+      for (const auto& element : m_data) {
+          if (element.x1() <= limits.x2 && element.x2() >= limits.x1 && element.y1() <= limits.y2 && element.y2() >= limits.y1) {
+              collidingElements.push_back(element);
+          }
+      }
+
+      for (const auto& child : m_children) {
+          if (child) {
+              auto childCollisions = child->findColliding(limits);
+              collidingElements.insert(collidingElements.end(), childCollisions.begin(), childCollisions.end());
+          }
+      }
+      return collidingElements;
   }
 
   /**
