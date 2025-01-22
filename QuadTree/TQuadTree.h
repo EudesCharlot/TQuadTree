@@ -55,10 +55,16 @@ struct SLimits
 template <QuadTreeData T>
 class TQuadTree
 {
-  //Vous pouvez modifier le code ci-dessous
-  //Attention à ne pas modifier les signatures des fonctions et des méthodes qui sont déjà présentes
+    //Vous pouvez modifier le code ci-dessous
+    //Attention à ne pas modifier les signatures des fonctions et des méthodes qui sont déjà présentes
 public:
-  using container = std::vector<T>;
+    using container = std::vector<T>;
+
+    //Données membres
+private:
+    SLimits m_limits;
+    container m_data;
+    std::unique_ptr<TQuadTree> m_children[4];
 
   /**
     * @brief Itérateur pour parcourir les éléments du QuadTree.
@@ -146,8 +152,25 @@ public:
   TQuadTree(const SLimits& limits = { 0.0f,0.0f,1.0f,1.0f })
   {
     //Evidemment, il va falloir compléter ce constructeur pour qu'il initialise correctement votre TQuadTree
+      m_limits = limits;
+      for (auto& child : m_children) {
+          child = nullptr;
+      }
   }
 
+  //Constructeur par copie
+  TQuadTree(const TQuadTree& Other) {
+      m_limits = Other.m_limits;
+      m_data = Other.m_data;
+      for (size_t i = 0; i < 4; ++i) {
+          if (Other.m_children[i]) {
+              m_children[i] = std::make_unique<TQuadTree>(*Other.m_children[i]);
+          }
+          else {
+              m_children[i] = nullptr;
+          }
+      }
+  }
 
   /**
    * @brief Retourne les limites géométriques de ce QuadTree
@@ -155,7 +178,7 @@ public:
   SLimits limits() const
   {
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne les limites géométriques de ce QuadTree
-    return {};
+    return m_limits;
   }
 
   /**
@@ -167,6 +190,14 @@ public:
    */
   bool empty() const
   {
+      if (!m_data.empty()) {
+          return false;
+      }
+      for (const auto& child : m_children) {
+          if (child && !child->empty()) {
+              return false;
+          }
+      }
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne true uniquement si le QuadTree est vide
     return true;
   }
@@ -178,8 +209,15 @@ public:
    */
   size_t depth() const
   {
+      size_t maxDepth = 0;
+      for (size_t i = 0; i < 4; i++) {
+          if (m_children[i]) {
+              maxDepth = std::max(maxDepth, m_children[i]->depth());
+          }
+      }
+
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne la profondeur maximale du QuadTree
-    return 0;
+    return 1+maxDepth;
   }
 
   /**
@@ -192,7 +230,13 @@ public:
   size_t size() const
   {
     //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne le nombre d'éléments stockés dans le QuadTree
-    return 0;
+      size_t totalSize= m_data.size();
+
+      for (const auto& child : m_children)
+          if (child)
+              totalSize += child->size();
+
+      return totalSize;
   }
 
   /**
@@ -207,7 +251,44 @@ public:
    */
   void insert(const T& t)
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
+      if (BiggerThanLimits(t, m_limits)) {
+          throw std::domain_error("L objet a inserer ne rentre pas dans la taille du TQuadTree");
+      }
+      if (BiggerThanHalfLimits(t, m_limits)) {
+          m_data.push_back(t);
+          this->subdivide();
+
+
+      }
+      else {
+        this->subdivide();
+      }    
+      //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
+  }
+  bool BiggerThanLimits(const T& t, SLimits limits) {
+      if (t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2) {
+          return true;
+      }
+      return false;
+
+  }
+  bool BiggerThanHalfLimits(const T& t, SLimits limits) {
+      return true;
+  }
+
+  //La fonction subdivide est là pour permettre dans le cas où un objet est plus petit que la moitié des limites du parent.  
+  void subdivide() {
+      //Limites des nouveaux TQuad :
+      float MidX = (m_limits.x1 + m_limits.x2)/2;
+      float MidY = (m_limits.y1 + m_limits.y2) / 2;
+      std::array<SLimits, 4> Coords;
+      Coords[0] = {m_limits.x1, m_limits.y1, MidX, MidY };
+      Coords[1] = { MidX, m_limits.y1, m_limits.x2, MidY };
+      Coords[2] = { m_limits.x1, MidY, MidX, m_limits.y2 };
+      Coords[3] = { MidX, MidY, m_limits.x2, m_limits.y2 };
+      for (size_t i = 0; i < 4; i++) {
+          m_children[i] = std::make_unique<TQuadTree>(Coords[i]);
+      }
   }
 
   /**
@@ -217,6 +298,10 @@ public:
    */
   void clear()
   {
+      m_data.clear();
+      for (auto& child : m_children) {
+          child = nullptr;
+      }
     //Evidemment, il va falloir compléter cette fonction pour qu'elle vide le QuadTree
   }
 
@@ -236,8 +321,19 @@ public:
    */
   container getAll() const
   {
-    //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments stockés dans le QuadTree
-    return {};
+      /*container AllElements;
+      //AllElements.push_back(m_data);
+      for (const auto& data : m_data) {
+          AllElements.push_back(data);
+      }
+      
+      for (auto child : m_children) {
+          child->getAll();
+      }
+      */
+      //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments stockés dans le QuadTree
+      
+          return {};
   }
 
   /**
