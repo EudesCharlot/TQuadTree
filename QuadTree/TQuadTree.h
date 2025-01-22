@@ -249,45 +249,72 @@ public:
    *
    * @param t L'élément à insérer dans le QuadTree.
    */
+  void subdivide()
+  {
+      float midX = (m_limits.x1 + m_limits.x2) / 2.0f;
+      float midY = (m_limits.y1 + m_limits.y2) / 2.0f;
+
+      m_children[0] = std::make_unique<TQuadTree>(SLimits{ m_limits.x1, m_limits.y1, midX, midY });
+      m_children[1] = std::make_unique<TQuadTree>(SLimits{ midX, m_limits.y1, m_limits.x2, midY });
+      m_children[2] = std::make_unique<TQuadTree>(SLimits{ m_limits.x1, midY, midX, m_limits.y2 });
+      m_children[3] = std::make_unique<TQuadTree>(SLimits{ midX, midY, m_limits.x2, m_limits.y2 });
+  }
+
+  void redistribute()
+  {
+      auto it = m_data.begin();
+      while (it != m_data.end())
+      {
+          bool inserted = false;
+          for (auto& child : m_children)
+          {
+              SLimits childLimits = child->limits();
+              if (it->x1() >= childLimits.x1 && it->x2() <= childLimits.x2 &&
+                  it->y1() >= childLimits.y1 && it->y2() <= childLimits.y2)
+              {
+                  child->insert(*it);
+                  it = m_data.erase(it);
+                  inserted = true;
+                  break;
+              }
+          }
+
+          if (!inserted)
+          {
+              ++it;
+          }
+      }
+  }
+
   void insert(const T& t)
   {
-      if (BiggerThanLimits(t, m_limits)) {
-          throw std::domain_error("L objet a inserer ne rentre pas dans la taille du TQuadTree");
+      if (t.x1() < m_limits.x1 || t.x2() > m_limits.x2 ||
+          t.y1() < m_limits.y1 || t.y2() > m_limits.y2)
+      {
+          throw std::domain_error("Out Of Bounds");
       }
-      if (BiggerThanHalfLimits(t, m_limits)) {
-          m_data.push_back(t);
-          this->subdivide();
 
-
+      for (auto& child : m_children)
+      {
+          if (child)
+          {
+              SLimits childLimits = child->limits();
+              if (t.x1() >= childLimits.x1 && t.x2() <= childLimits.x2 &&
+                  t.y1() >= childLimits.y1 && t.y2() <= childLimits.y2)
+              {
+                  child->insert(t);
+                  return;
+              }
+          }
       }
-      else {
-        this->subdivide();
-      }    
-      //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
-  }
-  bool BiggerThanLimits(const T& t, SLimits limits) {
-      if (t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2) {
-          return true;
-      }
-      return false;
 
-  }
-  bool BiggerThanHalfLimits(const T& t, SLimits limits) {
-      return true;
-  }
+      m_data.push_back(t);
 
-  //La fonction subdivide est là pour permettre dans le cas où un objet est plus petit que la moitié des limites du parent.  
-  void subdivide() {
-      //Limites des nouveaux TQuad :
-      float MidX = (m_limits.x1 + m_limits.x2)/2;
-      float MidY = (m_limits.y1 + m_limits.y2) / 2;
-      std::array<SLimits, 4> Coords;
-      Coords[0] = {m_limits.x1, m_limits.y1, MidX, MidY };
-      Coords[1] = { MidX, m_limits.y1, m_limits.x2, MidY };
-      Coords[2] = { m_limits.x1, MidY, MidX, m_limits.y2 };
-      Coords[3] = { MidX, MidY, m_limits.x2, m_limits.y2 };
-      for (size_t i = 0; i < 4; i++) {
-          m_children[i] = std::make_unique<TQuadTree>(Coords[i]);
+      const size_t maxElements = 4;
+      if (m_data.size() > maxElements && !m_children[0])
+      {
+          subdivide();
+          redistribute();
       }
   }
 
