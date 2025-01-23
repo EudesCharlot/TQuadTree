@@ -63,6 +63,7 @@ public:
 private:
     SLimits m_limits;
     container m_data;
+
     std::unique_ptr<TQuadTree> m_children[4];
     /**
   * @brief Itérateur pour parcourir les éléments du QuadTree.
@@ -76,7 +77,7 @@ private:
         using iterator_category = std::input_iterator_tag;
 
     private:
-        container* m_data;
+        std::shared_ptr<container> m_data;
         typename container::iterator m_iter;
 
     public:
@@ -98,9 +99,17 @@ private:
             return m_iter != other.m_iter;
         }
 
-        // Opérateur de pré-incrémentation (++it)
         iterator& operator++() {
+            if (!m_data)
+                return *this;
+
             ++m_iter;
+
+            if (m_iter == m_data->end()) {
+                m_data.reset();
+                m_iter = typename container::iterator();
+            }
+
             return *this;
         }
 
@@ -121,10 +130,7 @@ private:
             return &(*m_iter);
         }
 
-        // Fonction permettant d'accéder à la position courante
-        typename container::iterator get_internal_iterator() const {
-            return m_iter;
-        }
+
     };
 
 public:
@@ -237,7 +243,6 @@ public:
         else {
             subdivide(t);
         }
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
     }
     bool BiggerThanLimits(const T& t, SLimits limits) {
         if (t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2) {
@@ -442,48 +447,20 @@ public:
         return collidingElements;
     }
 
-    /**
-     * @brief Retourne un iterateur permettant de lister un à un tous les éléments
-     */
-    iterator begin()
-    {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de début
-        auto data = getAll();
-        return iterator(data);
+    iterator begin() {
+        return {};
     }
 
-    /**
-     * @brief Retourne un iterateur permettant de lister un à un tous les éléments inclus dans les limites spécifiées
-     *
-     * Les éléments listés sont ceux qui entrent en collision avec les limites spécifiées
-     */
-    iterator beginColliding(const SLimits& limits)
-    {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de début
-        auto data = findColliding(limits);
-        return iterator(data);
+    iterator beginColliding(const SLimits& limits) {
+        return {};
     }
 
-    /**
-     * @brief Retourne un iterateur permettant de lister un à un tous les éléments inclus dans les limites spécifiées
-     *
-     * Les éléments listés sont ceux qui sont inclus dans les limites spécifiées
-     */
-    iterator beginInscribed(const SLimits& limits)
-    {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de début
-        auto data = findInscribed(limits);
-        return iterator(data);
+    iterator beginInscribed(const SLimits& limits) {
+        return {};
     }
 
-    /**
-     * @brief Retourne un iterateur de fin
-     */
-    iterator end()
-    {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de fin
-        auto data = getAll();
-        return iterator(data, data.end());
+    iterator end() {
+        return {};
     }
+
 };
-
