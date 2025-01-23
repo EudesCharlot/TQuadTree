@@ -60,19 +60,15 @@ class TQuadTree
 public:
     using container = std::vector<T>;
 
-    //Données membres
 private:
     SLimits m_limits;
     container m_data;
     std::unique_ptr<TQuadTree> m_children[4];
-
     /**
-      * @brief Itérateur pour parcourir les éléments du QuadTree.
-      */
+  * @brief Itérateur pour parcourir les éléments du QuadTree.
+  */
     class iterator {
     public:
-        //Ces typedefs sont nécessaires pour que l'itérateur soit reconnu comme un itérateur d'entrée
-        //par les algorithmes de la STL. Vous ne devriez pas les modifier.
         using difference_type = std::ptrdiff_t;
         using value_type = T;
         using pointer = T*;
@@ -80,68 +76,56 @@ private:
         using iterator_category = std::input_iterator_tag;
 
     private:
+        container* m_data;
+        typename container::iterator m_iter;
 
     public:
-        /**
-         * @brief Constructeur par défaut de l'itérateur.
-         *
-         * Evidemment, il va falloir compléter cette fonction pour qu'elle initialise correctement l'itérateur.
-         * Peut-être que l'itérateur devrait être initialisé à la fin de la liste de données.
-         * Peut-etre qu'on peut ajouter d'autres constructeurs pour initialiser l'itérateur à un endroit spécifique.
-         */
-        iterator() = default;
+        iterator() : m_data(nullptr), m_iter() {}
 
-        /**
-         * @brief Opérateur de comparaison d'égalité.
-         *
-         * @returns true si les deux itérateurs sont à la même position.
-         */
-        bool operator==(const iterator& other) const
-        {
-            //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne true si les deux itérateurs sont à la même position
-            return true;
+        // Constructeur initialisant l'itérateur à un conteneur et une position
+        iterator(container& data, typename container::iterator iter) : m_data(&data), m_iter(iter) {}
+
+        // Constructeur pour initialiser l'itérateur au début du conteneur
+        explicit iterator(container& data) : m_data(&data), m_iter(data.begin()) {}
+
+        // Opérateur de comparaison d'égalité
+        bool operator==(const iterator& other) const {
+            return m_iter == other.m_iter;
         }
 
-        /**
-         * @brief Opérateur de pré-incrémentation de l'itérateur.
-         *
-         * @returns l'itérateur courant avancé vers la prochaine position valide.
-         */
-        iterator& operator++()
-        {
-            //Evidemment, il va falloir compléter cette fonction pour qu'elle avance l'itérateur à la prochaine position valide
+        // Opérateur de comparaison d'inégalité
+        bool operator!=(const iterator& other) const {
+            return m_iter != other.m_iter;
+        }
+
+        // Opérateur de pré-incrémentation (++it)
+        iterator& operator++() {
+            ++m_iter;
             return *this;
         }
 
-        /**
-         * @brief Opérateur de post-incrémentation de l'itérateur.
-         *
-         * @param int Un paramètre fictif pour distinguer l'opérateur de pré-incrémentation de celui-ci.
-         *
-         * @returns l'itérateur courant avant d'être avancé vers la prochaine position valide.
-         */
-        iterator operator++(int)
-        {
-            //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne l'itérateur courant avant d'être avancé
-            return {};
+        // Opérateur de post-incrémentation (it++)
+        iterator operator++(int) {
+            iterator temp = *this;
+            ++(*this);
+            return temp;
         }
 
-        /**
-         * @brief Opérateur de déréférencement de l'itérateur.
-         *
-         * @returns une référence vers l'élément pointé par l'itérateur.
-         */
-        T& operator*() const
-        {
-            throw std::logic_error("Not implemented yet");
+        // Opérateur de déréférencement (*it)
+        T& operator*() const {
+            return *m_iter;
         }
 
-        T* operator->()
-        {
-            return &(this->operator*());
+        // Opérateur d'accès aux membres (it->)
+        T* operator->() const {
+            return &(*m_iter);
+        }
+
+        // Fonction permettant d'accéder à la position courante
+        typename container::iterator get_internal_iterator() const {
+            return m_iter;
         }
     };
-
 
 public:
     /**
@@ -151,13 +135,11 @@ public:
      */
     TQuadTree(const SLimits& limits = { 0.0f,0.0f,1.0f,1.0f })
     {
-        //Evidemment, il va falloir compléter ce constructeur pour qu'il initialise correctement votre TQuadTree
         m_limits = limits;
         for (auto& child : m_children) {
             child = nullptr;
         }
     }
-
     //Constructeur par copie
     TQuadTree(const TQuadTree& Other) {
         m_limits = Other.m_limits;
@@ -172,13 +154,13 @@ public:
         }
     }
 
+
     /**
      * @brief Retourne les limites géométriques de ce QuadTree
      */
     SLimits limits() const
     {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne les limites géométriques de ce QuadTree
-        return m_limits;
+        return m_limits;;
     }
 
     /**
@@ -190,15 +172,13 @@ public:
      */
     bool empty() const
     {
-        if (!m_data.empty()) {
+        if (!m_data.empty())
             return false;
-        }
-        for (const auto& child : m_children) {
-            if (child && !child->empty()) {
+
+        for (const auto& child : m_children)
+            if (child && !child->empty())
                 return false;
-            }
-        }
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne true uniquement si le QuadTree est vide
+
         return true;
     }
 
@@ -210,14 +190,12 @@ public:
     size_t depth() const
     {
         size_t maxDepth = 0;
-        for (size_t i = 0; i < 4; i++) {
-            if (m_children[i]) {
-                maxDepth = std::max(maxDepth, m_children[i]->depth());
-            }
-        }
 
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne la profondeur maximale du QuadTree
-    return 1+maxDepth;
+        for (const auto& child : m_children) {
+            if (child)
+                maxDepth = std::max(maxDepth, child->depth());
+        }
+        return 1 + maxDepth;
     }
 
     /**
@@ -229,8 +207,7 @@ public:
      */
     size_t size() const
     {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne le nombre d'éléments stockés dans le QuadTree
-      size_t totalSize= m_data.size();
+        size_t totalSize = m_data.size();
 
         for (const auto& child : m_children)
             if (child)
@@ -254,7 +231,7 @@ public:
         if (BiggerThanLimits(t, m_limits)) {
             throw std::domain_error("L objet a inserer ne rentre pas dans la taille du TQuadTree");
         }
-        if (BiggerThanHalfLimits(t, m_limits)) {
+        if (CrossHalfLimits(t, m_limits)) {
             m_data.push_back(t);
         }
         else {
@@ -263,11 +240,24 @@ public:
         //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
     }
     bool BiggerThanLimits(const T& t, SLimits limits) {
-        return t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2;
+        if (t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2) {
+            return true;
+        }
+        return false;
     }
 
-    bool BiggerThanHalfLimits(const T& t, SLimits limits) {
-        return t.x2() - t.x1() > (limits.x2 - limits.x1) / 2 || t.y2() - t.y1() > (limits.y2 - limits.y1) / 2;
+    bool CrossHalfLimits(const T& t, SLimits limits) {
+        // Vérifier l'axe X
+        if ((t.x1() < (limits.x1 + limits.x2) / 2 && t.x2() > (limits.x1 + limits.x2) / 2) ||
+            (t.x2() > (limits.x1 + limits.x2) / 2 && t.x1() < (limits.x1 + limits.x2) / 2)) {
+            return true;
+        }
+        // Vérifier l'axe Y
+        if ((t.y1() < (limits.y1 + limits.y2) / 2 && t.y2() > (limits.y1 + limits.y2) / 2) ||
+            (t.y2() > (limits.y1 + limits.y2) / 2 && t.y1() < (limits.y1 + limits.y2) / 2)) {
+            return true;
+        }
+        return false;
     }
 
     //La fonction subdivide est là pour permettre dans le cas où un objet est plus petit que la moitié des limites du parent.
@@ -302,14 +292,14 @@ public:
         for (auto& child : m_children) {
             child = nullptr;
         }
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle vide le QuadTree
     }
 
     void remove(const T& t)
     {
-        if (t.x2() < m_limits.x1 || t.x1() > m_limits.x2 || t.y2() < m_limits.y1 || t.y1() > m_limits.y2)
+        if (t.x2() < m_limits.x1 || t.x1() > m_limits.x2 ||
+            t.y2() < m_limits.y1 || t.y1() > m_limits.y2)
         {
-            throw std::domain_error("L objet a supprimer ne rentre pas dans la taille du TQuadTree");
+            throw std::domain_error("ah bah non");
         }
 
         if (m_children[0])
@@ -346,7 +336,6 @@ public:
                 child.reset();
             }
         }
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retire l'élément du QuadTree
     }
 
 
@@ -358,11 +347,14 @@ public:
      *
      * @return Une liste de tous les éléments stockés dans le QuadTree.
      */
-    container getAll() const {
+    container getAll() const
+    {
         container allElement = m_data;
 
-        for (const auto& child : m_children) {
-            if (child) {
+        for (const auto& child : m_children)
+        {
+            if (child)
+            {
                 container childElements = child->getAll();
                 allElement.insert(allElement.end(), childElements.begin(), childElements.end());
             }
@@ -381,22 +373,29 @@ public:
      */
     container findInscribed(const SLimits& limits) const
     {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments inclus dans la zone spécifiée
         container result;
 
-        if (m_limits.x1 >= limits.x1 && m_limits.x2 <= limits.x2 && m_limits.y1 >= limits.y1 && m_limits.y2 <= limits.y2) {
+        if (m_limits.x1 >= limits.x1 && m_limits.x2 <= limits.x2 &&
+            m_limits.y1 >= limits.y1 && m_limits.y2 <= limits.y2)
+        {
             result.insert(result.end(), m_data.begin(), m_data.end());
         }
-        else {
-            for (const auto& element : m_data) {
-                if (element.x1() >= limits.x1 && element.x2() <= limits.x2 && element.y1() >= limits.y1 && element.y2() <= limits.y2) {
+        else
+        {
+            for (const auto& element : m_data)
+            {
+                if (element.x1() >= limits.x1 && element.x2() <= limits.x2 &&
+                    element.y1() >= limits.y1 && element.y2() <= limits.y2)
+                {
                     result.push_back(element);
                 }
             }
         }
 
-        for (const auto& child : m_children) {
-            if (child) {
+        for (const auto& child : m_children)
+        {
+            if (child)
+            {
                 container childResult = child->findInscribed(limits);
                 result.insert(result.end(), childResult.begin(), childResult.end());
             }
@@ -415,21 +414,27 @@ public:
      */
     container findColliding(const SLimits& limits) const
     {
-        //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne tous les éléments en collision avec la zone spécifiée
         container collidingElements;
 
-        if (limits.x2 < m_limits.x1 || limits.x1 > m_limits.x2 || limits.y2 < m_limits.y1 || limits.y1 > m_limits.y2) {
+        if (limits.x2 < m_limits.x1 || limits.x1 > m_limits.x2 ||
+            limits.y2 < m_limits.y1 || limits.y1 > m_limits.y2)
+        {
             return collidingElements;
         }
 
-        for (const auto& element : m_data) {
-            if (element.x1() <= limits.x2 && element.x2() >= limits.x1 && element.y1() <= limits.y2 && element.y2() >= limits.y1) {
+        for (const auto& element : m_data)
+        {
+            if (element.x1() <= limits.x2 && element.x2() >= limits.x1 &&
+                element.y1() <= limits.y2 && element.y2() >= limits.y1)
+            {
                 collidingElements.push_back(element);
             }
         }
 
-        for (const auto& child : m_children) {
-            if (child) {
+        for (const auto& child : m_children)
+        {
+            if (child)
+            {
                 auto childCollisions = child->findColliding(limits);
                 collidingElements.insert(collidingElements.end(), childCollisions.begin(), childCollisions.end());
             }
@@ -443,7 +448,8 @@ public:
     iterator begin()
     {
         //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de début
-        return {};
+        auto data = getAll();
+        return iterator(data);
     }
 
     /**
@@ -454,7 +460,8 @@ public:
     iterator beginColliding(const SLimits& limits)
     {
         //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de début
-        return {};
+        auto data = findColliding(limits);
+        return iterator(data);
     }
 
     /**
@@ -465,7 +472,8 @@ public:
     iterator beginInscribed(const SLimits& limits)
     {
         //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de début
-        return {};
+        auto data = findInscribed(limits);
+        return iterator(data);
     }
 
     /**
@@ -474,7 +482,8 @@ public:
     iterator end()
     {
         //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de fin
-        return {};
+        auto data = getAll();
+        return iterator(data, data.end());
     }
 };
 
