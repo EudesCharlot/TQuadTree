@@ -263,17 +263,11 @@ public:
         //Evidemment, il va falloir compléter cette fonction pour qu'elle insère l'élément dans le QuadTree
     }
     bool BiggerThanLimits(const T& t, SLimits limits) {
-        if (t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2) {
-            return true;
-        }
-        return false;
-
+        return t.x1() < limits.x1 || t.y1() < limits.y1 || t.x2() > limits.x2 || t.y2() > limits.y2;
     }
+
     bool BiggerThanHalfLimits(const T& t, SLimits limits) {
-        if (t.x2() - t.x1() > (limits.x2 - limits.x1) / 2 || t.y2() - t.y1() > (limits.y2 - limits.y1) / 2) {
-            return true;
-        }
-        return false;
+        return t.x2() - t.x1() > (limits.x2 - limits.x1) / 2 || t.y2() - t.y1() > (limits.y2 - limits.y1) / 2;
     }
 
     //La fonction subdivide est là pour permettre dans le cas où un objet est plus petit que la moitié des limites du parent.
@@ -482,6 +476,5 @@ public:
         //Evidemment, il va falloir compléter cette fonction pour qu'elle retourne un iterateur de fin
         return {};
     }
-
 };
 

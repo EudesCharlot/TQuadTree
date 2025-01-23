@@ -208,7 +208,7 @@ TEST_CASE("TQuadTree.1-QuadTree basic test", "[basic]") {
     REQUIRE(std::count(all.begin(), all.end(), Rectangle(0.5f, 0.0f, 1.0f, 0.5f)) == 1); //NE
     REQUIRE(std::count(all.begin(), all.end(), Rectangle(0.5f, 0.5f, 1.0f, 1.0f)) == 1); //SE
   }
-
+  
   SECTION("iterator") {
     //Vérifie que tous les rectangles sont bien présents
     REQUIRE(std::distance(qt.begin(), qt.end()) == 5);
@@ -256,7 +256,7 @@ TEST_CASE("TQuadTree.1-QuadTree basic test", "[basic]") {
     REQUIRE(std::count(qt.begin(), qt.end(), Rectangle(0.5f, 0.0f, 1.0f, 0.5f)) == 1); //NE
     REQUIRE(std::count(qt.begin(), qt.end(), Rectangle(0.5f, 0.5f, 1.0f, 1.0f)) == 1); //SE
   }
-
+  
   //Réinitialise le QuadTree
   qt.clear();
   REQUIRE(qt.empty() == true);
